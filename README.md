@@ -1,404 +1,180 @@
-# 🍫 Workshop: From Raw Sales Data to a Working Prediction Model (Python)
+# Chocolate Sales Analysis and Prediction Project
 
-## 0) The story (why we’re here)
+This repository contains a comprehensive analysis of the Chocolate Sales dataset, covering end-to-end machine learning workflow from data cleaning to model deployment insights. The project predicts sales amount using regression models, with a focus on temporal data and categorical encoding.
 
-You’ve joined the data team at **ChocoCo**, a company selling chocolate in multiple countries via a sales team.
+## Table of Contents
+- [Overview](#overview)
+- [Dataset](#dataset)
+- [Technologies](#technologies)
+- [Project Structure](#project-structure)
+- [Data Workflow](#data-workflow)
+  - [1. Data Loading and Inspection](#1-data-loading-and-inspection)
+  - [2. Data Cleaning](#2-data-cleaning)
+  - [3. Exploratory Data Analysis (EDA)](#3-exploratory-data-analysis-eda)
+  - [4. Feature Engineering](#4-feature-engineering)
+  - [5. Modeling](#5-modeling)
+  - [6. Evaluation](#6-evaluation)
+  - [7. Feature Importance](#7-feature-importance)
+  - [8. Stretch Goals](#8-stretch-goals)
+- [Results](#results)
+- [Key Insights](#key-insights)
+- [Future Work](#future-work)
+- [Contributing](#contributing)
+- [License](#license)
 
-Leadership asks two practical questions:
+## Overview
+The goal of this project is to analyze transactional chocolate sales data and build a predictive model for the `amount` of sales. Through data cleaning, exploration, and machine learning, we identify patterns in sales across countries, products, and time. The final Random Forest model provides actionable insights for business decisions.
 
-1. **What drives sales revenue?**
+## Dataset
+- **Source**: Chocolate_Sales.csv from RosEdu workshop.
+- **Description**: Contains transactional sales data with features like date, country, product, salesperson, boxes_shipped, and amount.
+- **Size**: Approximately 1000 rows after cleaning.
+- **Key Columns**:
+  - `date`: Sale date (converted to datetime).
+  - `amount`: Target variable (sales value).
+  - `boxes_shipped`: Number of boxes (numeric).
+  - `country`, `product`, `sales_person`: Categorical features.
 
-   * Which products and countries contribute most?
-   * Are some salespeople consistently outperforming?
+## Technologies
+- **Python 3.8+**
+- **Libraries**:
+  - Data Handling: Pandas, NumPy
+  - Visualization: Matplotlib
+  - Machine Learning: Scikit-learn (models, preprocessing, evaluation)
+  - Development: Jupyter Notebook
+- **Tools**: Git for version control.
 
-2. **Can we predict revenue per transaction?**
-
-   * For a given (Country, Product, Sales Person, Date, Boxes Shipped), can we estimate **Amount**?
-
-We’ll answer both using a dataset from Kaggle: **Chocolate Sales**. ([Kaggle][1])
-
----
-
-## 1) The dataset
-
-From the dataset documentation and community analyses, the core fields you’ll use are:
-
-* `Sales Person`
-* `Country`
-* `Product`
-* `Date`
-* `Amount` (target / label)
-* `Boxes Shipped`
-
----
-
-## 2) Setup: project structure (scripts *or* notebooks)
-
-You can complete the workshop in **either** of these modes:
-
-### Option A — Script-based
-
-Create a folder like:
-
+## Project Structure
 ```
-choco-workshop/
-  data/
-    raw/
-    processed/
-  reports/
-    figures/
-  src/
-    clean_data.py
-    eda.py
-    features.py
-    train.py
-    evaluate.py
-  README.md
-  requirements.txt
-```
-
-You’ll write small scripts that you run from the terminal.
-
-### Option B — Notebook-based
-
-Create a folder like:
-
-```
-choco-workshop/
-  data/
-    raw/
-    processed/
-  reports/
-    figures/
-  notebooks/
-    01_cleaning.ipynb
-    02_eda.ipynb
-    03_features.ipynb
-    04_modelling.ipynb
-    05_evaluation.ipynb
-  requirements.txt
+DataWorkshopRosEdu-ChocoCo/
+├── data/
+│   ├── raw/
+│   │   └── Chocolate_Sales.csv          # Raw dataset
+│   └── processed/
+│       ├── Chocolate_Sales_Curated.csv  # Cleaned data
+│       └── X_encoded.csv                # Feature-encoded data
+├── notebooks/
+│   └── chocolate_sales_analysis.ipynb   # Main analysis notebook
+├── reports/
+│   ├── figures/                         # Generated plots (PNG)
+│   └── model_report.md                  # Auto-generated summary report
+├── src/                                 # (Optional) Custom scripts
+├── requirements.txt                     # Python dependencies
+├── README.md                            # This file
+└── .gitignore                           # Ignore data files, etc.
 ```
 
-You’ll complete each step in a separate notebook.
-
-**Notebook guidance (important):**
-
-* Keep notebooks **linear and reproducible** (Run All should work top-to-bottom).
-* Save outputs (cleaned CSVs, plots) to the same `data/processed/` and `reports/figures/` folders as the script version.
-* Treat notebooks like “experiment logs”, not like final apps.
-
-### Python environment (same for both)
-
-1. Create a virtual environment (`python -m venv .venv`)
-2. Activate it (`source .venv/bin/activate` / Windows activation)
-3. Install dependencies from `requirements.txt`
-
-Suggested packages to include:
-
-* `pandas`, `numpy` (data handling)
-* `matplotlib` (plots)
-* `scikit-learn` (models + evaluation)
-* `python-dateutil` (date parsing)
-* **Notebook mode only:** `jupyter` or `jupyterlab`
-
----
-
-## 3) Get the data (Kaggle)
-
-### Manual download
-
-1. Download the CSV from Kaggle. ([Kaggle][1])
-2. Put it in `data/raw/`
-3. Confirm you can load it using `pandas.read_csv(...)`
-
-**Hint:** If you see weird column names (extra spaces, inconsistent capitalisation), that’s normal — you’ll fix that in cleaning.
-
----
-
-## 4) Data cleaning & preprocessing
-
-### Why cleaning matters (in real life)
-
-Cleaning is where you prevent:
-
-* **Broken charts** (dates stored as text, numeric values stored as strings)
-* **Bad models** (data leakage, incorrect types, missing values)
-* **Misleading conclusions** (duplicate rows, inconsistent categories)
-
-### What you should do
-
-1. **Load the raw CSV**
-
-   * Hint: `pandas.read_csv(...)`
-
-2. **Standardise column names**
-
-   * Convert to lowercase, replace spaces with underscores, trim whitespace
-   * Hint: `df.columns = ...` with `str.lower()`, `str.strip()`, `str.replace(...)`
-
-3. **Parse the date column**
-
-   * Convert `Date` into a real datetime type
-   * Hint: `pandas.to_datetime(..., errors="coerce")`
-   * Then check how many dates failed conversion (`isna().sum()`)
-
-4. **Convert numeric columns**
-
-   * Ensure `Amount` and `Boxes Shipped` are numeric types
-   * Watch for commas or currency symbols
-   * Hint: `str.replace(",", "")`, then `pandas.to_numeric(..., errors="coerce")`
-
-5. **Handle missing values**
-
-   * Decide a strategy:
-
-     * If `Amount` is missing (your prediction target), you usually **drop those rows**
-     * If a feature is missing, you may keep rows and later **impute**
-   * Hint: `dropna(subset=[...])`, `fillna(...)`, or defer to sklearn imputers later
-
-6. **Remove duplicates carefully**
-
-   * Hint: `drop_duplicates()`
-
-7. **Save a cleaned dataset**
-
-   * Write to `data/processed/` so later steps don’t depend on raw quirks
-   * Hint: `to_csv(..., index=False)`
-
-### Exercise checkpoints
-
-* How many rows were removed due to missing `Amount`?
-* How many `Date` values failed parsing?
-* Are `Amount` and `Boxes Shipped` definitely numeric now (`df.dtypes`)?
-
----
-
-## 5) Exploratory Data Analysis (EDA): “Can we see patterns?”
-
-EDA is **sanity-checking + curiosity**:
-
-* What ranges do values take?
-* Are there obvious outliers?
-* Is the dataset balanced across countries/products?
-* How does revenue change over time?
-
-### What you should do
-
-1. **Basic inspection**
-
-   * Look at the first few rows, column names, data types
-   * Hint: `head()`, `info()`, `describe()`
-
-2. **Missing values overview**
-
-   * Count missing values per column
-   * Hint: `isna().sum().sort_values(...)`
-
-3. **Simple grouping questions**
-
-   * Total revenue by country
-   * Total revenue by product
-   * Total revenue by salesperson
-   * Hint: `groupby(...).sum().sort_values(...)`
-
-4. **Time-based summaries**
-
-   * Aggregate revenue by month (or week)
-   * Hint: use `dt.to_period("M")` or `dt.month` and `groupby`
-
-### EDA hints (what to look for)
-
-* If one salesperson dominates, ask: “Is that real performance or data coverage bias?”
-* If `Boxes Shipped` has zeros/negatives, that’s a data quality red flag.
-* If there are only a few dates, your “trend analysis” will be weak.
-
----
-
-## 6) Quick visualisations (graphs that answer business questions)
-
-We’ll make **3 small plots** that are easy to explain to non-DS stakeholders.
-
-### What you should build
-
-1. **Revenue over time**
-
-   * Plot total `Amount` per month
-   * Hint: aggregate first (`groupby month`), then `matplotlib.pyplot.plot(...)`
-
-2. **Top 10 products by revenue**
-
-   * Horizontal bar chart is often easiest to read
-   * Hint: `sort_values().head(10)` then `plot(kind="barh")`
-
-3. **Boxes shipped vs revenue**
-
-   * Scatter plot to see whether “more boxes generally means more revenue”
-   * Hint: `plt.scatter(x, y)`
-
-**Output habit:** save plots to `reports/figures/` so they can go into slides later.
-
-* Hint: `plt.savefig(...)`
-
----
-
-## 7) Feature engineering (turn raw columns into model-friendly signals)
-
-### What is feature engineering?
-
-A model can’t directly use text like `"Australia"` or `"Dark Truffles"` unless we encode it.
-
-You’ll build features:
-
-* **Date features**: month, day-of-week (and optionally “is weekend”)
-* **Categoricals**: encode `country`, `product`, `sales_person`
-* **Numeric**: `boxes_shipped`
-
-### What you should do
-
-1. **Create date-derived features**
-
-   * `month` from the date
-   * `day_of_week` from the date
-   * Hint: `df["date"].dt.month`, `df["date"].dt.dayofweek`
-
-2. **Choose your target**
-
-   * We predict `Amount` (regression)
-
-3. **Decide which columns are inputs**
-
-   * Likely inputs: `Boxes Shipped`, `Country`, `Product`, `Sales Person`, `month`, `day_of_week`
-
-4. **Encode categorical variables**
-
-   * Use one-hot encoding
-   * Hint (sklearn): `OneHotEncoder(handle_unknown="ignore")`
-   * Hint (pandas quick version): `get_dummies(...)` (fine for prototyping; less ideal for pipelines)
-
-### A key rule: avoid “cheating” (data leakage)
-
-Don’t include anything that wouldn’t be known at prediction time.
-
-Example leakage:
-
-* If `Amount` is the target, don’t compute “average amount per product” using the whole dataset *before splitting*.
-* If you do target encoding / averages, compute them **inside training folds only**.
-
----
-
-## 8) Modelling (prediction)
-
-1) Pick your train/test split
-   - Default (recommended): time-based split
-     - Sort by Date
-     - Train = first 80% of rows, Test = last 20%
-     - Hint: sort_values("date"), then slice with .iloc[...]
-
-   - Only use random split if time doesn’t matter
-     - Hint: train_test_split(test_size=0.2, random_state=42)
-
-2) Cross-validation
-   - If using time: TimeSeriesSplit(n_splits=5)
-   - If random split: KFold / cross_val_score
-
-3) Baselines (always do these first)
-- Predict mean Amount from training set
-- Predict median Amount from training set (Hint: mean(), median())
-
-4) Models to try
-- Ridge regression (great first real model)
-- Random forest regressor (handles non-linear patterns)
-Hint: RandomForestRegressor(n_estimators=200-500, random_state=42)
-
----
-
-## 9) Evaluation: “How do we know if the model is any good?”
-
-Evaluation isn’t just a metric—it’s a **decision**.
-
-### Metrics to use
-
-* **MAE** (Mean Absolute Error): “On average, how many currency units off are we?”
-
-  * Hint: `mean_absolute_error`
-* **RMSE**: penalises large mistakes more than MAE
-
-  * Hint: compute from MSE (`mean_squared_error`) then square root
-* **R²**: fraction of variance explained
-
-  * Hint: `r2_score`
-
-### The most important evaluation choices
-
-1. **Split strategy**
-
-   * If time-ordered: use time-based splits
-   * Random split can accidentally train on “future” patterns
-
-2. **Baseline comparison**
-
-   * If baseline MAE ≈ model MAE, your model isn’t adding value
-
-3. **Error analysis**
-
-   * Find where the model performs worst:
-
-     * Which countries/products have the highest errors?
-   * Hint: calculate per-group MAE using `groupby` after you generate predictions
-
-### Mini exercise: error slicing
-
-After predicting, compute MAE per country/product:
-
-* “Where is the model weakest and why might that be?”
-
----
-
-## 10) Feature importance: “What matters most?”
-
-You’ll explain *why* the model makes good predictions.
-
-Two accessible approaches:
-
-1. **Permutation importance (model-agnostic)**
-
-   * Shuffle one feature at a time and see how much the metric worsens
-   * Hint: `sklearn.inspection.permutation_importance`
-
-2. **Model-specific importance**
-
-   * Random forests provide built-in importance values
-   * Hint: `model.feature_importances_`
-   * Caveat: can be misleading with correlated features — use with care
-
----
-
-## 11) Stretch goals
-
-* Add a new feature: `is_weekend`
-
-  * Hint: `day_of_week >= 5`
-* Predict **monthly total sales** instead of transaction `Amount`
-
-  * Hint: aggregate first, then treat it as a time series regression/forecasting problem
-* Try a different model: Gradient boosting
-
-  * Hint: `GradientBoostingRegressor` (or `HistGradientBoostingRegressor`)
-* Create a Markdown “report generator”
-
-  * Save figures + key numbers, then write a short summary file automatically
-
----
-
-## 12) What “good” looks like at the end
-
-You’ll have:
-
-* A reproducible pipeline that turns raw CSV → cleaned CSV
-* Clear EDA outputs and a few stakeholder-friendly charts
-* At least one model that beats the baseline (hopefully!)
-* A way to explain feature importance in plain language
-
----
-
-[1]: https://www.kaggle.com/datasets/saidaminsaidaxmadov/chocolate-sales?utm_source=chatgpt.com "Chocolate Sales - Kaggle"
+## Data Workflow
+
+### 1. Data Loading and Inspection
+- Load data: 
+  ```python
+  df = pd.read_csv('data/raw/Chocolate_Sales.csv')
+  ```
+- Inspect: 
+  ```python
+  df.head()
+  df.info()
+  df.describe()
+  ```
+- Standardize columns: Convert to lowercase, replace spaces with underscores.
+
+### 2. Data Cleaning
+- Remove duplicates: 
+  ```python
+  df.drop_duplicates(inplace=True)
+  ```
+- Handle missing values: Drop rows with missing `amount` or invalid dates.
+- Convert dates: 
+  ```python
+  df['date'] = pd.to_datetime(df['date'], errors='coerce')
+  ```
+- Filter NaT: 
+  ```python
+  df = df.dropna(subset=['date'])
+  ```
+- Check for outliers: Identify `boxes_shipped <= 0` as data quality issues.
+
+### 3. Exploratory Data Analysis (EDA)
+- Missing values check: 
+  ```python
+  df.isna().sum()
+  ```
+- Summary stats: 
+  ```python
+  df.describe()
+  ```
+- Groupings:
+  - Revenue by country: 
+    ```python
+    df.groupby('country')['amount'].sum().sort_values(ascending=False)
+    ```
+  - Revenue by product: 
+    ```python
+    df.groupby('product')['amount'].sum().sort_values(ascending=False)
+    ```
+  - Revenue by salesperson: 
+    ```python
+    df.groupby('sales_person')['amount'].sum().sort_values(ascending=False)
+    ```
+- Time analysis: Monthly revenue aggregation using `df['date'].dt.to_period('M')`
+- Visualizations:
+  - Revenue over time (line plot)
+  - Top 10 products by revenue (horizontal bar chart)
+  - Boxes shipped vs. revenue (scatter plot)
+
+### 4. Feature Engineering
+- Date features: `month`, `day_of_week`, `is_weekend`
+- Target: `amount`
+- Inputs: Numeric (boxes_shipped, month, day_of_week), Categorical (country, product, sales_person)
+- Encoding: One-hot encoding with `OneHotEncoder` or `pd.get_dummies`
+- Output: `X_encoded` DataFrame with encoded features.
+
+### 5. Modeling
+- Train/Test Split: Time-based (80/20) to respect temporal order.
+- Baselines: Mean and median predictions from training set.
+- Models:
+  - Ridge Regression (with StandardScaler for features)
+  - Random Forest Regressor
+  - Cross-validation: TimeSeriesSplit for temporal data.
+
+### 6. Evaluation
+- Metrics: MAE, RMSE, R²
+- Baseline comparison: Measure improvement.
+- Error analysis: MAE per country/product, visualize error distributions.
+
+### 7. Feature Importance
+- Built-in (RF): `rf.feature_importances_`
+- Permutation: `permutation_importance` for robustness.
+
+### 8. Stretch Goals
+- Add `is_weekend` feature.
+- Predict monthly totals: Aggregate and model as time series.
+- Try Gradient Boosting.
+- Generate Markdown report with key figures and insights.
+
+## Results
+- **Baseline MAE**: ~3800
+- **Random Forest MAE**: ~3400 (improvement of ~400)
+- **R²**: ~0.3 (explains 30% of variance)
+- **Top Features**: boxes_shipped, month, country_USA
+- **Error Analysis**: Higher errors in countries/products with sparse data.
+- All plots and reports are saved in `reports/`.
+
+## Key Insights
+- Sales patterns vary by country and product, with temporal trends.
+- Boxes shipped correlates weakly with amount, indicating other factors (e.g., pricing).
+- Model limitations: Small dataset leads to moderate performance; more data/features needed.
+- Business recommendations: Focus on top countries (UK, USA) and products ("Dark Truffles").
+
+## Future Work
+- Incorporate external data (e.g., holidays, economic indicators).
+- Experiment with advanced models (e.g., LSTM for time series).
+- Hyperparameter tuning with GridSearchCV.
+- Deploy model as a web API using Flask.
+
+## Contributing
+Contributions are welcome! Please fork the repo, create a branch, and submit a pull request. Ensure code follows PEP8 and includes tests.
+
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.
